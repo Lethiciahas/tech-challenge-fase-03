@@ -8,7 +8,7 @@ variable "environment" {
 
 variable "github_repo_url" {
   type    = string
-  default = "https://github.com/owner/feature-flag.git"
+  default = "https://github.com/Lethiciahas/tech-challenge-fase-03.git"
 }
 
 resource "helm_release" "argocd" {

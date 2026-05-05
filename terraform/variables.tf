@@ -105,7 +105,7 @@ variable "allowed_ssh_cidr" {
 
 variable "github_repo" {
   type    = string
-  default = "owner/feature-flag"
+  default = "Lethiciahas/tech-challenge-fase-03"
 }
 
 variable "github_branch" {

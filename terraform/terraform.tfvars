@@ -46,5 +46,5 @@ k8s_instance_type = "t3.medium"
 ssh_key_name      = "feature-flag-k8s-key"
 allowed_ssh_cidr  = ["0.0.0.0/0"]
 
-github_repo   = "owner/feature-flag"
+github_repo   = "Lethiciahas/tech-challenge-fase-03"
 github_branch = "main"
