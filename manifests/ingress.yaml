@@ -1,0 +1,116 @@
+apiVersion: v1
+items:
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    annotations: []
+    name: analytics-service-ingress
+    namespace: feature-flag-dev
+  spec:
+    ingressClassName: nginx
+    rules:
+    - http:
+        paths:
+        - backend:
+            service:
+              name: analytics-service
+              port:
+                number: 8005
+          path: /analytics(/|$)(.*)
+          pathType: ImplementationSpecific
+  status:
+    loadBalancer:
+      ingress:
+      - ip: 10.43.15.72
+---
+
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    annotations: []
+    name: auth-service-ingress
+    namespace: feature-flag-dev
+  spec:
+    ingressClassName: nginx
+    rules:
+    - http:
+        paths:
+        - backend:
+            service:
+              name: auth-service
+              port:
+                number: 8001
+          path: /auth(/|$)(.*)
+          pathType: ImplementationSpecific
+  status:
+    loadBalancer:
+      ingress:
+      - ip: 10.43.15.72
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    annotations: []
+    name: evaluation-service-ingress
+    namespace: feature-flag-dev
+  spec:
+    ingressClassName: nginx
+    rules:
+    - http:
+        paths:
+        - backend:
+            service:
+              name: evaluation-service
+              port:
+                number: 8004
+          path: /evaluation(/|$)(.*)
+          pathType: ImplementationSpecific
+  status:
+    loadBalancer:
+      ingress:
+      - ip: 10.43.15.72
+---
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    annotations: []
+    name: flag-service-ingress
+    namespace: feature-flag-dev
+  spec:
+    ingressClassName: nginx
+    rules:
+    - http:
+        paths:
+        - backend:
+            service:
+              name: flag-service
+              port:
+                number: 8002
+          path: /flags(/|$)(.*)
+          pathType: ImplementationSpecific
+  status:
+    loadBalancer:
+      ingress:
+      - ip: 10.43.15.72
+---
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    annotations: []
+    name: targeting-service-ingress
+    namespace: feature-flag-dev
+  spec:
+    ingressClassName: nginx
+    rules:
+    - http:
+        paths:
+        - backend:
+            service:
+              name: targeting-service
+              port:
+                number: 8003
+          path: /targeting(/|$)(.*)
+          pathType: ImplementationSpecific
+  status:
+    loadBalancer:
+      ingress:
+      - ip: 10.43.15.72
