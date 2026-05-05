@@ -18,7 +18,7 @@ spec:
       - name: ecr-secret
       containers:
       - name: analytics-service
-        image: 964177143569.dkr.ecr.us-east-1.amazonaws.com/analytics-service:latest
+        image: 964177143569.dkr.ecr.us-east-1.amazonaws.com/feature-flag-analytics-service:latest
         ports:
         - containerPort: 8005
         env:

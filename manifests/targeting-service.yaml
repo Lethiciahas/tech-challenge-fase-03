@@ -18,7 +18,7 @@ spec:
       - name: ecr-secret
       containers:
       - name: targeting-service
-        image: 964177143569.dkr.ecr.us-east-1.amazonaws.com/targeting-service:latest
+        image: 964177143569.dkr.ecr.us-east-1.amazonaws.com/feature-flag-targeting-service:latest
         ports:
         - containerPort: 8003
         env:
