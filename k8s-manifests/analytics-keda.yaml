@@ -1,0 +1,37 @@
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: aws-credentials
+  namespace: feature-flag-dev
+spec:
+  secretTargetRef:
+  - parameter: awsAccessKeyID
+    name: keda-aws-secrets
+    key: AWS_ACCESS_KEY_ID
+  - parameter: awsSecretAccessKey
+    name: keda-aws-secrets
+    key: AWS_SECRET_ACCESS_KEY
+  - parameter: awsSessionToken
+    name: keda-aws-secrets
+    key: AWS_SESSION_TOKEN
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: analytics-service-scaler
+  namespace: feature-flag-dev
+spec:
+  scaleTargetRef:
+    name: analytics-service
+  minReplicaCount: 1
+  maxReplicaCount: 5
+  pollingInterval: 5
+  cooldownPeriod: 30
+  triggers:
+  - type: aws-sqs-queue
+    authenticationRef:
+      name: aws-credentials
+    metadata:
+      queueURL: https://sqs.us-east-1.amazonaws.com/964177143569/feature-flag-dev-evaluation-events
+      queueLength: "2"
+      awsRegion: us-east-1

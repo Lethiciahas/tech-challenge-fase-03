@@ -1,0 +1,142 @@
+services:
+  auth-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-togglemaster}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-togglemaster}
+      POSTGRES_DB: auth_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+      - ./auth-service/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-togglemaster} -d auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  core-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-togglemaster}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-togglemaster}
+      POSTGRES_DB: flags_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - core_db_data:/var/lib/postgresql/data
+      - ./infra/postgres/core-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-togglemaster} -d flags_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-dbPath", "/home/dynamodblocal/data"]
+    ports:
+      - "8000:8000"
+    volumes:
+      - dynamodb_data:/home/dynamodblocal/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  auth-service:
+    build:
+      context: ./auth-service
+    environment:
+      PORT: "8001"
+      DATABASE_URL: postgres://${POSTGRES_USER:-togglemaster}:${POSTGRES_PASSWORD:-togglemaster}@auth-db:5432/auth_db?sslmode=disable
+      MASTER_KEY: ${MASTER_KEY:-admin-secreto-123}
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    ports:
+      - "8001:8001"
+
+  flag-service:
+    build:
+      context: ./flag-service
+    environment:
+      PORT: "8002"
+      DATABASE_URL: postgres://${POSTGRES_USER:-togglemaster}:${POSTGRES_PASSWORD:-togglemaster}@core-db:5432/flags_db?sslmode=disable
+      AUTH_SERVICE_URL: http://auth-service:8001
+    depends_on:
+      auth-service:
+        condition: service_started
+      core-db:
+        condition: service_healthy
+    ports:
+      - "8002:8002"
+
+  targeting-service:
+    build:
+      context: ./targeting-service
+    environment:
+      PORT: "8003"
+      DATABASE_URL: postgres://${POSTGRES_USER:-togglemaster}:${POSTGRES_PASSWORD:-togglemaster}@core-db:5432/targeting_db?sslmode=disable
+      AUTH_SERVICE_URL: http://auth-service:8001
+    depends_on:
+      auth-service:
+        condition: service_started
+      core-db:
+        condition: service_healthy
+    ports:
+      - "8003:8003"
+
+  evaluation-service:
+    build:
+      context: ./evaluation-service
+    environment:
+      PORT: "8004"
+      REDIS_URL: redis://redis:6379
+      FLAG_SERVICE_URL: http://flag-service:8002
+      TARGETING_SERVICE_URL: http://targeting-service:8003
+      SERVICE_API_KEY: ${SERVICE_API_KEY:-tm_key_placeholder}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_SQS_URL: ${AWS_SQS_URL:-https://sqs.us-east-1.amazonaws.com/000000000000/togglemaster-queue}
+    depends_on:
+      redis:
+        condition: service_healthy
+      flag-service:
+        condition: service_started
+      targeting-service:
+        condition: service_started
+    ports:
+      - "8004:8004"
+
+  analytics-service:
+    build:
+      context: ./analytics-service
+    environment:
+      PORT: "8005"
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_SQS_URL: ${AWS_SQS_URL:-https://sqs.us-east-1.amazonaws.com/000000000000/togglemaster-queue}
+      AWS_DYNAMODB_TABLE: ${AWS_DYNAMODB_TABLE:-ToggleMasterAnalytics}
+      AWS_DYNAMODB_ENDPOINT: ${AWS_DYNAMODB_ENDPOINT:-http://dynamodb-local:8000}
+      DISABLE_AWS: ${DISABLE_AWS:-true}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-dummy}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-dummy}
+      AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-dummy}
+    depends_on:
+      evaluation-service:
+        condition: service_started
+      dynamodb-local:
+        condition: service_started
+    ports:
+      - "8005:8005"
+
+volumes:
+  auth_db_data:
+  core_db_data:
+  dynamodb_data:
