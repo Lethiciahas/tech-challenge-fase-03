@@ -26,25 +26,27 @@ phases:
   build:
     commands:
       - cd $CODEBUILD_SRC_DIR/analytics-service
-      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
-      - IMAGE_TAG=${COMMIT_HASH:=latest}
+      - export COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - export IMAGE_TAG=${COMMIT_HASH:=latest}
       - docker build -t $ECR_REPO:$IMAGE_TAG .
       - docker tag $ECR_REPO:$IMAGE_TAG $ECR_REPO:latest
       - trivy image --exit-code 1 --severity CRITICAL --no-progress $ECR_REPO:$IMAGE_TAG
 
   post_build:
     commands:
-      - cd $CODEBUILD_SRC_DIR/analytics-service
+      - export COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - export IMAGE_TAG=${COMMIT_HASH:=latest}
+      - export FULL_IMAGE="$ECR_REPO:$IMAGE_TAG"
       - docker push $ECR_REPO:$IMAGE_TAG
       - docker push $ECR_REPO:latest
       - GITHUB_TOKEN=$(aws ssm get-parameter --name /feature-flag/github-token --with-decryption --query Parameter.Value --output text)
       - git clone https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git /tmp/gitops-repo
       - cd /tmp/gitops-repo
-      - sed -i "s|image:.*feature-flag-analytics-service:.*|image:\ $ECR_REPO:$IMAGE_TAG|" gitops/base/analytics-service.yaml
+      - 'sed -i "s@image: .*feature-flag-analytics-service:.*@image: ${FULL_IMAGE}@" gitops/base/analytics-service.yaml'
       - git config user.email "codebuild@ci.local"
       - git config user.name "CodeBuild"
       - git add gitops/base/analytics-service.yaml
-      - git commit -m "ci(analytics-service)- update image to $IMAGE_TAG" || true
+      - 'git commit -m "ci: analytics-service image ${IMAGE_TAG}" || true'
       - git push origin main || true
 
 artifacts:
