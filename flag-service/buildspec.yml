@@ -28,28 +28,25 @@ phases:
       - cd $CODEBUILD_SRC_DIR/flag-service
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - IMAGE_TAG=${COMMIT_HASH:=latest}
-      - echo "--- Docker Build ---"
       - docker build -t $ECR_REPO:$IMAGE_TAG .
       - docker tag $ECR_REPO:$IMAGE_TAG $ECR_REPO:latest
-      - echo "--- Container Scan (Trivy) ---"
       - trivy image --exit-code 1 --severity CRITICAL --no-progress $ECR_REPO:$IMAGE_TAG
 
   post_build:
     commands:
-      - echo "--- Push to ECR ---"
+      - cd $CODEBUILD_SRC_DIR/flag-service
       - docker push $ECR_REPO:$IMAGE_TAG
       - docker push $ECR_REPO:latest
-      - echo "--- Update GitOps ---"
-      - cd $CODEBUILD_SRC_DIR
       - GITHUB_TOKEN=$(aws ssm get-parameter --name /feature-flag/github-token --with-decryption --query Parameter.Value --output text)
+      - git clone https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git /tmp/gitops-repo
+      - cd /tmp/gitops-repo
       - sed -i "s|image:.*feature-flag-flag-service:.*|image:\ $ECR_REPO:$IMAGE_TAG|" gitops/base/flag-service.yaml
       - git config user.email "codebuild@ci.local"
       - git config user.name "CodeBuild"
-      - git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git
       - git add gitops/base/flag-service.yaml
       - git commit -m "ci(flag-service)- update image to $IMAGE_TAG" || true
       - git push origin main || true
 
 artifacts:
   files:
-    - gitops/base/flag-service.yaml
+    - "**/*"
