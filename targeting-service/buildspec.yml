@@ -1,13 +1,9 @@
 version: 0.2
 
-env:
-  parameter-store:
-    GITHUB_TOKEN: /feature-flag/github-token
-
 phases:
   install:
     runtime-versions:
-      python: 3.11
+      python: "3.11"
     commands:
       - pip install flake8 bandit pytest
       - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.50.1
@@ -44,13 +40,14 @@ phases:
       - docker push $ECR_REPO:latest
       - echo "--- Update GitOps ---"
       - cd $CODEBUILD_SRC_DIR
-      - sed -i "s|image:.*targeting-service:.*|image: $ECR_REPO:$IMAGE_TAG|" gitops/base/targeting-service.yaml
+      - GITHUB_TOKEN=$(aws ssm get-parameter --name /feature-flag/github-token --with-decryption --query Parameter.Value --output text)
+      - sed -i "s|image:.*feature-flag-targeting-service:.*|image:\ $ECR_REPO:$IMAGE_TAG|" gitops/base/targeting-service.yaml
       - git config user.email "codebuild@ci.local"
       - git config user.name "CodeBuild"
       - git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git
       - git add gitops/base/targeting-service.yaml
-      - git commit -m "ci(targeting-service): update image to $IMAGE_TAG" || true
-      - git push origin main
+      - git commit -m "ci(targeting-service)- update image to $IMAGE_TAG" || true
+      - git push origin main || true
 
 artifacts:
   files:
