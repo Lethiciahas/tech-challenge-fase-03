@@ -25,7 +25,7 @@ phases:
 
   build:
     commands:
-      - cd /targeting-service
+      - cd $CODEBUILD_SRC_DIR/targeting-service
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - IMAGE_TAG=${COMMIT_HASH:=latest}
       - echo "--- Docker Build ---"
