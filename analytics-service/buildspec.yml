@@ -12,15 +12,10 @@ phases:
     commands:
       - cd analytics-service
       - pip install -r requirements.txt
-      - echo "--- Unit Tests ---"
       - pytest test_app.py -v || true
-      - echo "--- Linter (flake8) ---"
       - flake8 app.py --max-line-length=120 --ignore=E501,W503,E302,E303,W291,W292,W293,E261,E262,E265,E266,E402 || true
-      - echo "--- SAST (bandit) ---"
       - bandit -r app.py -ll -ii || true
-      - echo "--- SCA (Trivy filesystem) ---"
       - trivy fs --exit-code 1 --severity CRITICAL --no-progress .
-      - echo "--- ECR Login ---"
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
 
   build:
@@ -36,17 +31,17 @@ phases:
     commands:
       - export COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - export IMAGE_TAG=${COMMIT_HASH:=latest}
-      - export FULL_IMAGE="$ECR_REPO:$IMAGE_TAG"
+      - export FULL_IMAGE=$ECR_REPO:$IMAGE_TAG
       - docker push $ECR_REPO:$IMAGE_TAG
       - docker push $ECR_REPO:latest
-      - GITHUB_TOKEN=$(aws ssm get-parameter --name /feature-flag/github-token --with-decryption --query Parameter.Value --output text)
-      - git clone https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git /tmp/gitops-repo
+      - export GITHUB_TOKEN=$(aws ssm get-parameter --name /feature-flag/github-token --with-decryption --query Parameter.Value --output text)
+      - git clone https://x-access-token:$GITHUB_TOKEN@github.com/$GITHUB_REPO.git /tmp/gitops-repo
       - cd /tmp/gitops-repo
-      - sed -i "s@image:.*feature-flag-analytics-service:.*@image: $FULL_IMAGE@" gitops/base/analytics-service.yaml || true
-      - git config user.email "codebuild@ci.local"
-      - git config user.name "CodeBuild"
-      - git add gitops/base/analytics-service.yaml
-      - git commit -m "ci: analytics-service image ${IMAGE_TAG}" || true
+      - sed -i "s@image:.*feature-flag-analytics-service:.*@image:\ $FULL_IMAGE@" gitops/base/analytics-service.yaml || true
+      - git config user.email codebuild@ci.local
+      - git config user.name CodeBuild
+      - git add -A
+      - git diff --cached --quiet || git commit -m "ci analytics-service $IMAGE_TAG"
       - git push origin main || true
 
 artifacts:
