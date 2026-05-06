@@ -6,7 +6,7 @@ phases:
       python: "3.11"
     commands:
       - pip install flake8 bandit pytest
-      - rpm -ivh https://github.com/aquasecurity/trivy/releases/download/v0.49.1/trivy_0.49.1_Linux-64bit.rpm
+      - curl -sfL https://github.com/aquasecurity/trivy/releases/download/v0.49.1/trivy_0.49.1_Linux-64bit.tar.gz | tar xzf - -C /usr/local/bin trivy
 
   pre_build:
     commands:
