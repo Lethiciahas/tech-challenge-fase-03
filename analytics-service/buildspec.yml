@@ -6,7 +6,7 @@ phases:
       python: "3.11"
     commands:
       - pip install flake8 bandit pytest
-      - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.50.1
+      - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.58.0
 
   pre_build:
     commands:
