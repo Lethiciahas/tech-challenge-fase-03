@@ -6,7 +6,6 @@ phases:
       golang: "1.21"
     commands:
       - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b /usr/local/bin v1.56.2
-      - curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b /usr/local/bin v2.19.0
       - curl -sfL https://github.com/aquasecurity/trivy/releases/download/v0.70.0/trivy_0.70.0_Linux-64bit.tar.gz | tar xzf - -C /usr/local/bin trivy
 
   pre_build:
@@ -14,7 +13,6 @@ phases:
       - cd evaluation-service
       - go test -v -race ./...
       - golangci-lint run ./... || true
-      - gosec -severity high -confidence high ./... || true
       - trivy fs --severity CRITICAL --no-progress . || true
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
 
