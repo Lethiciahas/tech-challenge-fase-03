@@ -37,7 +37,7 @@ phases:
       - export GITHUB_TOKEN=$(aws ssm get-parameter --name /feature-flag/github-token --with-decryption --query Parameter.Value --output text)
       - git clone https://x-access-token:$GITHUB_TOKEN@github.com/$GITHUB_REPO.git /tmp/gitops-repo
       - cd /tmp/gitops-repo
-      - sed -i "s@image:.*feature-flag-flag-service:.*@image:\ $FULL_IMAGE@" gitops/base/flag-service.yaml || true
+      - sed -i "s@image:.*feature-flag-flag-service:.*@image: $FULL_IMAGE@" gitops/base/flag-service.yaml || true
       - git config user.email codebuild@ci.local
       - git config user.name CodeBuild
       - git add -A
