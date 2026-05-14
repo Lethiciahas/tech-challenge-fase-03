@@ -33,16 +33,9 @@ phases:
       - export IMAGE_TAG=${COMMIT_HASH:=latest}
       - docker push $ECR_REPO:$IMAGE_TAG
       - docker push $ECR_REPO:latest
-      - export GITHUB_TOKEN=$(aws ssm get-parameter --name /feature-flag/github-token --with-decryption --query Parameter.Value --output text)
-      - git clone https://x-access-token:$GITHUB_TOKEN@github.com/$GITHUB_REPO.git /tmp/gitops-repo
-      - cd /tmp/gitops-repo
-      - export NEW_IMAGE=$ECR_REPO:$IMAGE_TAG
-      - bash -c 'sed -i "s|image:.*flag-service:.*|        image: $NEW_IMAGE|" gitops/base/flag-service.yaml'
-      - git config user.email codebuild@ci.local
-      - git config user.name CodeBuild
-      - git add -A
-      - bash -c 'git diff --cached --quiet || git commit -m "ci flag-service $IMAGE_TAG"'
-      - git push origin main || true
+      - cd $CODEBUILD_SRC_DIR/flag-service
+      - chmod +x update-gitops.sh
+      - ./update-gitops.sh || true
 
 artifacts:
   files:
